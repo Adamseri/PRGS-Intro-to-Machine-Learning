@@ -25,19 +25,18 @@ For this assignment, you will practice downloadings, cleaning, and analyzing dat
 
 __1. Import the NRI data. Ensure that the [FIPS code](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code) variable ('STCOFIPS') is correctly identified as a string / character variable. Otherwise, the leading zeros will be removed.__
 
+
 ```{python}
-nri_data= r"C:\Users\aserilevi\code\PRGS-Intro-to-Machine-Learning\data\raw\National Risk Index (NRI) County Level Data\NRI_Table_Counties.csv"
+
+#importing packages
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+nri_data=r"C:\Users\aserilevi\code\PRGS-Intro-to-Machine-Learning\data\raw\National Risk Index (NRI) County Level Data\NRI_Table_Counties.csv"
 nri_df=pd.read_csv(nri_data)
 nri_df['STCOFIPS'] = nri_df['STCOFIPS'].astype(str)
 stcofips_column = 'STCOFIPS'
-
-
-# Filter columns that end with '_AFREQ' or '_RISKR'
-filtered_nri = nri_df.filter(regex='(_AFREQ|_RISKR)$').columns
-
-# Include the STCOFIPS column
-filtered_nri = [stcofips_column] + list(filtered_nri)
-
 ```
 
 __2. Subset the NRI data to include only the 5-digit state/county FIPS code and all colums ending with '\_AFREQ' and '\_RISKR'. Each of these columns represents a different hazard type.__
@@ -69,17 +68,27 @@ count_missing_subset_nri=count_missing(subset_nri)
 count_missing_subset_nri = count_missing_subset_nri.drop('STCOFIPS')
 # converting to dataframe
 count_missing_subset_nri= pd.DataFrame(count_missing_subset_nri)
+print(count_missing_subset_nri)
 ```
 
 __4. Show the cross-tabulation of the 'AVLN_AFREQ' and 'AVLN_RISKR' columns (including missing values). What do you observe?__
 ```{python}
-#cross tabulating, but it doesn't make sense because AFREQ is a numerical variable, and to cross tabulate you need two categorical variables
+#Creating a new column in the subset_nri dataframe that indicates where the value in AVLN_AFREQ is missing or observed
+subset_nri['AVLN_AFREQ_MISSING'] = np.where(subset_nri['AVLN_AFREQ'].isna(),'Missing', 'Observed')
+
+'''
+##Checking that it worked
+print(subset_nri[subset_nri['AVLN_AFREQ_MISSING'] == 'Observed'][['AVLN_AFREQ_MISSING', 'AVLN_AFREQ']])
+'''
+#cross tabulating, I noticed that there are no missing valuse except for wehn "AVLN_RISK" equals 'Not Applicable'. When it equals 'Not Applicable', "AVLN_RISK" is always missing, which makes sense since there is no risk associated when there isn't an applicable hazard
 
 crosstab_df=pd.crosstab(
-    subset_nri['AVLN_AFREQ'],
+    subset_nri['AVLN_AFREQ_MISSING'],
     subset_nri['AVLN_RISKR'],
     dropna=False
 )
+
+print(crosstab_df)
 ```
 
 __5. Assuming that a risk that is "not applicable" to a county has an annualized frequency of 0, impute the relevant missing values in the '\_AFREQ' columns with 0.__
@@ -91,6 +100,12 @@ riskr_columns = [col for col in subset_nri.columns if col.endswith('_RISKR')]
 #Impute zero in '_AFREQ' columns where the corresponding '_RISKR'columns are 'Not Applicable'
 for riskr_columns, afreq_columns in zip(riskr_columns, afreq_columns):
     subset_nri.loc[subset_nri[riskr_columns] == 'Not Applicable', afreq_columns] = 0
+
+'''
+##Can check that this works by running the previous python cell and then running this one again, there should be ZERO counts of "Missing" in the cross tabulation for 'Not Applicable'
+print(crosstab_df)
+'''
+
 ```
 
 
@@ -115,6 +130,8 @@ svi_columns = columns_to_select = [
 
 #filtering the columns in the svi table 
 filtered_svi=svi_df[svi_columns]
+#print result
+print(filtered_svi)
 ```
 
 __2. Create a table / dataframe that shows the number of missing values in each column.
@@ -125,6 +142,8 @@ __2. Create a table / dataframe that shows the number of missing values in each 
 svi_missing=count_missing(filtered_svi)
 #turning it into a dataframe
 svi_missing_df=pd.DataFrame(svi_missing)
+#print result
+print(svi_missing_df)
 ```
 
 ## Task 3 - Data Merging
@@ -138,6 +157,8 @@ __2. Merge the NRI and SVI data on the FIPS code. Use an outer join to keep all 
 
 ##merging the subsetted and filtered dataframes on the FIPS and STCOFIPS keys
 merged_nri_svi=pd.merge(subset_nri, filtered_svi, how='outer', left_on='STCOFIPS', right_on='FIPS')
+#print result
+print(merged_nri_svi)
 ```
 __3. Create a table / dataframe that shows the number of missing values in each column of the merged dataset.__
 
@@ -145,8 +166,8 @@ __3. Create a table / dataframe that shows the number of missing values in each 
 #using count_missing function to county how many missing values there are in merged dataframe
 missing_merged=count_missing(merged_nri_svi)
 missing_merged_df=pd.DataFrame(missing_merged)
-
-
+#print result
+print(missing_merged_df)
 ```
 
 ## Task 4 - Data Analysis
