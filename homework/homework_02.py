@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 #Task 1
 nri_data= r"C:\Users\aserilevi\code\PRGS-Intro-to-Machine-Learning\data\raw\National Risk Index (NRI) County Level Data\NRI_Table_Counties.csv"
@@ -30,6 +31,10 @@ count_missing_subset_nri = count_missing_subset_nri.drop('STCOFIPS')
 #converting to dataframe
 count_missing_subset_nri= pd.DataFrame(count_missing_subset_nri)
 
+nri_df['AVLN_FREQ_MISSING'] = np.where(nri_df['AVLN_AFREQ'].isna(),'Missing', 'Exists')
+print(nri_df['AVLN_FREQ_MISSING'])
+
+'''
 #cross tabulating, but it doesn't make sense because AFREQ is a numerical variable, and to cross tabulate you need two categorical variables
 
 crosstab_df=pd.crosstab(
@@ -108,3 +113,4 @@ hist_test= plot_histogram(merged_nri_svi['EP_MINRTY'])
 selecting_numerical_variables= merged_nri_svi.select_dtypes(include=['number'])
 #applying the plot_Histogram function to all the numerical variables in the merged dataset
 apply_hist=selecting_numerical_variables.apply(plot_histogram)
+'''
