@@ -6,9 +6,7 @@
 "source": [
 "---\n",
 "title: \"Homework 2\"\n",
-"output: \n",
-" html_document:\n",
-" toc: true # Optional: add a Table of Contents\n",
+"format: html\n",
 "---\n",
 "\n",
 "\n",
@@ -42,7 +40,7 @@ the original source of the data.\n",
 code](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code) variable ('STCOFIPS') is
 correctly identified as a string / character variable. Otherwise, the leading zeros will be removed.__\n"
 ],
-"id": "bb03652d"
+"id": "46efcb9b"
 },
 {
 "cell_type": "code",
@@ -59,7 +57,7 @@ Level Data\\NRI_Table_Counties.csv\"\n",
 "nri_df['STCOFIPS'] = nri_df['STCOFIPS'].astype(str)\n",
 "stcofips_column = 'STCOFIPS'"
 ],
-"id": "cb046381",
+"id": "6c4a9e7d",
 "execution_count": null,
 "outputs": []
 },
@@ -70,7 +68,7 @@ Level Data\\NRI_Table_Counties.csv\"\n",
 "__2. Subset the NRI data to include only the 5-digit state/county FIPS code and all colums ending with '\\_AFREQ' and
 '\\_RISKR'. Each of these columns represents a different hazard type.__"
 ],
-"id": "19cf775f"
+"id": "ea906296"
 },
 {
 "cell_type": "code",
@@ -91,7 +89,7 @@ Level Data\\NRI_Table_Counties.csv\"\n",
 "# Restrict to rows where STCOFIPS has exactly 5 digits\n",
 "subset_nri = subset_nri[subset_nri[stcofips_column].astype(str).str.match(r'^\\d{5}$')]"
 ],
-"id": "28a0c84b",
+"id": "861ca4b2",
 "execution_count": null,
 "outputs": []
 },
@@ -102,7 +100,7 @@ Level Data\\NRI_Table_Counties.csv\"\n",
 "__3. Create a table / dataframe that, for each hazard type, shows the number of missing values in the '\\_AFREQ' and
 '\\_RISKR' columns.__"
 ],
-"id": "8011eac1"
+"id": "c424a1f9"
 },
 {
 "cell_type": "code",
@@ -119,7 +117,7 @@ Level Data\\NRI_Table_Counties.csv\"\n",
 "count_missing_subset_nri= pd.DataFrame(count_missing_subset_nri)\n",
 "print(count_missing_subset_nri)"
 ],
-"id": "b2bc0f9a",
+"id": "9f292d73",
 "execution_count": null,
 "outputs": []
 },
@@ -130,7 +128,7 @@ Level Data\\NRI_Table_Counties.csv\"\n",
 "__4. Show the cross-tabulation of the 'AVLN_AFREQ' and 'AVLN_RISKR' columns (including missing values). What do you
 observe?__"
 ],
-"id": "23b02f64"
+"id": "8b015ce6"
 },
 {
 "cell_type": "code",
@@ -156,7 +154,7 @@ when there isn't an applicable hazard\n",
 "\n",
 "print(crosstab_df)"
 ],
-"id": "2485f40f",
+"id": "d1ef55a9",
 "execution_count": null,
 "outputs": []
 },
@@ -167,13 +165,15 @@ when there isn't an applicable hazard\n",
 "__5. Assuming that a risk that is \"not applicable\" to a county has an annualized frequency of 0, impute the relevant
 missing values in the '\\_AFREQ' columns with 0.__"
 ],
-"id": "55a48531"
+"id": "0de461aa"
 },
 {
 "cell_type": "code",
 "metadata": {},
 "source": [
 "#Identifying which columns ends with _AFREQ and _RISKR and assigning each to a variable\n",
+"#I used chatgpt using the following prompt: \"How to impute a value for multiple columns that follow a simialr naming
+structure based on the value in another column\"\n",
 "afreq_columns = [col for col in subset_nri.columns if col.endswith('_AFREQ')]\n",
 "riskr_columns = [col for col in subset_nri.columns if col.endswith('_RISKR')]\n",
 "\n",
@@ -187,7 +187,7 @@ counts of \"Missing\" in the cross tabulation for 'Not Applicable'\n",
 "print(crosstab_df)\n",
 "'''"
 ],
-"id": "f03ec586",
+"id": "34862c4f",
 "execution_count": null,
 "outputs": []
 },
@@ -204,7 +204,7 @@ Otherwise, the leading zeros will be removed.__\n",
 EP_UNINSUR, EP_AGE65, EP_AGE17, EP_DISABL, EP_SNGPNT, EP_LIMENG, EP_MINRTY, EP_MUNIT, EP_MOBILE, EP_CROWD, EP_NOVEH,
 EP_GROUPQ, EP_NOINT, EP_AFAM, EP_HISP, EP_ASIAN, EP_AIAN, EP_NHPI, EP_TWOMORE, EP_OTHERRACE`"
 ],
-"id": "13f014f5"
+"id": "9a5421a9"
 },
 {
 "cell_type": "code",
@@ -229,7 +229,7 @@ County Level Data\\SVI_2022_US_county.csv\"\n",
 "#print result\n",
 "print(filtered_svi)"
 ],
-"id": "7f300157",
+"id": "6ae7e3a6",
 "execution_count": null,
 "outputs": []
 },
@@ -240,7 +240,7 @@ County Level Data\\SVI_2022_US_county.csv\"\n",
 "__2. Create a table / dataframe that shows the number of missing values in each column.\n",
 "(Hint: if you wrote a function for Task 1, you can reuse it here.)__"
 ],
-"id": "1da71fb4"
+"id": "17f2513d"
 },
 {
 "cell_type": "code",
@@ -253,7 +253,7 @@ County Level Data\\SVI_2022_US_county.csv\"\n",
 "#print result\n",
 "print(svi_missing_df)"
 ],
-"id": "ac80d291",
+"id": "013e2928",
 "execution_count": null,
 "outputs": []
 },
@@ -266,7 +266,7 @@ County Level Data\\SVI_2022_US_county.csv\"\n",
 discrepancies and possible causes? What to these discrepancies, if any, mean for interpreting results based on the
 merged dataset moving forward?__"
 ],
-"id": "b7885462"
+"id": "56fb7437"
 },
 {
 "cell_type": "code",
@@ -277,7 +277,7 @@ county (STCO). The SVI data has one column named FIPS and another column named S
 interpreted in the same way as the STCOFIPS column from the NRI data and we should keep this in mind moving forward as
 we can use this as a key to merge our datasets"
 ],
-"id": "a9354669",
+"id": "2e130cb3",
 "execution_count": null,
 "outputs": []
 },
@@ -287,7 +287,7 @@ we can use this as a key to merge our datasets"
 "source": [
 "__2. Merge the NRI and SVI data on the FIPS code. Use an outer join to keep all counties in the final dataset.__"
 ],
-"id": "ac850145"
+"id": "36066726"
 },
 {
 "cell_type": "code",
@@ -298,7 +298,7 @@ we can use this as a key to merge our datasets"
 "#print result\n",
 "print(merged_nri_svi)"
 ],
-"id": "923e01d3",
+"id": "55c532f7",
 "execution_count": null,
 "outputs": []
 },
@@ -308,7 +308,7 @@ we can use this as a key to merge our datasets"
 "source": [
 "__3. Create a table / dataframe that shows the number of missing values in each column of the merged dataset.__"
 ],
-"id": "f325cc77"
+"id": "9fc5bf6b"
 },
 {
 "cell_type": "code",
@@ -320,7 +320,7 @@ we can use this as a key to merge our datasets"
 "#print result\n",
 "print(missing_merged_df)"
 ],
-"id": "b7b40677",
+"id": "28b81856",
 "execution_count": null,
 "outputs": []
 },
@@ -334,12 +334,14 @@ we can use this as a key to merge our datasets"
 "(Hint: write a function to make the histogram for a single variable, then use a loop or apply function to make the
 histograms for all numerical variables.)__"
 ],
-"id": "639193ed"
+"id": "08a5c296"
 },
 {
 "cell_type": "code",
 "metadata": {},
 "source": [
+"#I used chatgpt by asking it how to apply a function that creates a histogram for every numerical variable in a
+dataframe\n",
 "def plot_histogram(data, bins=10, title='Histogram', xlabel='Values', ylabel='Frequency'):\n",
 " plt.figure(figsize=(8, 6))\n",
 " plt.hist(data, bins=bins, edgecolor='black')\n",
@@ -351,14 +353,16 @@ histograms for all numerical variables.)__"
 " \n",
 " # Show the plot\n",
 " plt.show()\n",
+"'''\n",
 "#checking to see if it worked\n",
 "hist_test= plot_histogram(merged_nri_svi['EP_MINRTY'])\n",
+"'''\n",
 "#assigning a variable that is only the numerical variables in the merged dataset\n",
 "selecting_numerical_variables= merged_nri_svi.select_dtypes(include=['number'])\n",
 "#applying the plot_Histogram function to all the numerical variables in the merged dataset\n",
 "apply_hist=selecting_numerical_variables.apply(plot_histogram)"
 ],
-"id": "b08d9a92",
+"id": "d6ff6670",
 "execution_count": null,
 "outputs": []
 }

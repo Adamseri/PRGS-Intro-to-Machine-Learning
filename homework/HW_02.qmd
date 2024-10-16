@@ -94,6 +94,7 @@ print(crosstab_df)
 __5. Assuming that a risk that is "not applicable" to a county has an annualized frequency of 0, impute the relevant missing values in the '\_AFREQ' columns with 0.__
 ```{python}
 #Identifying which columns ends with _AFREQ and _RISKR and assigning each to a variable
+#I used chatgpt using the following prompt: "How to impute a value for multiple columns that follow a simialr naming structure based on the value in another column"
 afreq_columns = [col for col in subset_nri.columns if col.endswith('_AFREQ')]
 riskr_columns = [col for col in subset_nri.columns if col.endswith('_RISKR')]
 
@@ -176,6 +177,7 @@ __1. For each numerical variable in the merged dataset, plot a histogram showing
 (Hint: write a function to make the histogram for a single variable, then use a loop or apply function to make the histograms for all numerical variables.)__
 
 ```{python}
+#I used chatgpt by asking it how to apply a function that creates a histogram for every numerical variable in a dataframe
 def plot_histogram(data, bins=10, title='Histogram', xlabel='Values', ylabel='Frequency'):
     plt.figure(figsize=(8, 6))
     plt.hist(data, bins=bins, edgecolor='black')
@@ -187,8 +189,10 @@ def plot_histogram(data, bins=10, title='Histogram', xlabel='Values', ylabel='Fr
     
     # Show the plot
     plt.show()
+'''
 #checking to see if it worked
 hist_test= plot_histogram(merged_nri_svi['EP_MINRTY'])
+'''
 #assigning a variable that is only the numerical variables in the merged dataset
 selecting_numerical_variables= merged_nri_svi.select_dtypes(include=['number'])
 #applying the plot_Histogram function to all the numerical variables in the merged dataset
