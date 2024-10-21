@@ -1,379 +1,1425 @@
-{
-"cells": [
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"---\n",
-"title: \"Homework 2\"\n",
-"format: html\n",
-"---\n",
-"\n",
-"\n",
-"__Due Date:__ 2022-10-16 at 8:30 AM PT\n",
-"\n",
-"---\n",
-"\n",
-"\n",
-"__Name:__ Adam Seri-Levi\n",
-"\n",
-"\n",
-"\n",
-"For this assignment, you will practice downloadings, cleaning, and analyzing data from the [National Risk Index
-(NRI)](https://hazards.fema.gov/nri/) and the [CDC Social Vulnerability Index
-(SVI)](https://www.atsdr.cdc.gov/placeandhealth/svi/index.html).\n",
-"\n",
-"## Preparation\n",
-"\n",
-"1. Create a 'data' folder in the root directory of your repository.\n",
-"1. Inside the 'data' folder, create a 'raw' folder.\n",
-"1. Add and commit a '.gitignore' file to the root directory of this repository that excludes all contents of the 'data'
-folder.\n",
-"1. Download the county-level NRI and SVI data for the entire United States. Place the data in the 'data/raw'
-folder.\n",
-"1. In the repository README, provide a brief (1-2 sentence) description of each file in the 'data' folder and a link to
-the original source of the data.\n",
-"\n",
-"## Task 1 - NRI Data Cleaning\n",
-"\n",
-"__1. Import the NRI data. Ensure that the [FIPS
-code](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code) variable ('STCOFIPS') is
-correctly identified as a string / character variable. Otherwise, the leading zeros will be removed.__\n"
-],
-"id": "46efcb9b"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#importing packages\n",
-"import pandas as pd\n",
-"import matplotlib.pyplot as plt\n",
-"import numpy as np\n",
-"\n",
-"nri_data=r\"C:\\Users\\aserilevi\\code\\PRGS-Intro-to-Machine-Learning\\data\\raw\\National Risk Index (NRI) County
-Level Data\\NRI_Table_Counties.csv\"\n",
-"nri_df=pd.read_csv(nri_data)\n",
-"nri_df['STCOFIPS'] = nri_df['STCOFIPS'].astype(str)\n",
-"stcofips_column = 'STCOFIPS'"
-],
-"id": "6c4a9e7d",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__2. Subset the NRI data to include only the 5-digit state/county FIPS code and all colums ending with '\\_AFREQ' and
-'\\_RISKR'. Each of these columns represents a different hazard type.__"
-],
-"id": "ea906296"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#Assigning the stcofips column to a variable\n",
-"stcofips_column = 'STCOFIPS'\n",
-"\n",
-"# Filter columns that end with '_AFREQ' or '_RISKR'\n",
-"filtered_nri = nri_df.filter(regex='(_AFREQ|_RISKR)$').columns\n",
-"\n",
-"# Include the STCOFIPS column\n",
-"filtered_nri = [stcofips_column] + list(filtered_nri)\n",
-"\n",
-"# Subset the DataFrame with only columns of interest\n",
-"subset_nri = nri_df[filtered_nri]\n",
-"\n",
-"# Restrict to rows where STCOFIPS has exactly 5 digits\n",
-"subset_nri = subset_nri[subset_nri[stcofips_column].astype(str).str.match(r'^\\d{5}$')]"
-],
-"id": "861ca4b2",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__3. Create a table / dataframe that, for each hazard type, shows the number of missing values in the '\\_AFREQ' and
-'\\_RISKR' columns.__"
-],
-"id": "c424a1f9"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"# Creating a function that counts missing values for each column in a dataFrame\n",
-"def count_missing(df):\n",
-" return df.isna().sum()\n",
-"# using the function to count missing in our subsetted dataframe\n",
-"count_missing_subset_nri=count_missing(subset_nri)\n",
-"# dropping the STCOFIPS column\n",
-"count_missing_subset_nri = count_missing_subset_nri.drop('STCOFIPS')\n",
-"# converting to dataframe\n",
-"count_missing_subset_nri= pd.DataFrame(count_missing_subset_nri)\n",
-"print(count_missing_subset_nri)"
-],
-"id": "9f292d73",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__4. Show the cross-tabulation of the 'AVLN_AFREQ' and 'AVLN_RISKR' columns (including missing values). What do you
-observe?__"
-],
-"id": "8b015ce6"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#Creating a new column in the subset_nri dataframe that indicates where the value in AVLN_AFREQ is missing or
-observed\n",
-"subset_nri['AVLN_AFREQ_MISSING'] = np.where(subset_nri['AVLN_AFREQ'].isna(),'Missing', 'Observed')\n",
-"\n",
-"'''\n",
-"##Checking that it worked\n",
-"print(subset_nri[subset_nri['AVLN_AFREQ_MISSING'] == 'Observed'][['AVLN_AFREQ_MISSING', 'AVLN_AFREQ']])\n",
-"'''\n",
-"#cross tabulating, I noticed that there are no missing valuse except for wehn \"AVLN_RISK\" equals 'Not Applicable'.
-When it equals 'Not Applicable', \"AVLN_RISK\" is always missing, which makes sense since there is no risk associated
-when there isn't an applicable hazard\n",
-"\n",
-"crosstab_df=pd.crosstab(\n",
-" subset_nri['AVLN_AFREQ_MISSING'],\n",
-" subset_nri['AVLN_RISKR'],\n",
-" dropna=False\n",
-")\n",
-"\n",
-"print(crosstab_df)"
-],
-"id": "d1ef55a9",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__5. Assuming that a risk that is \"not applicable\" to a county has an annualized frequency of 0, impute the relevant
-missing values in the '\\_AFREQ' columns with 0.__"
-],
-"id": "0de461aa"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#Identifying which columns ends with _AFREQ and _RISKR and assigning each to a variable\n",
-"#I used chatgpt using the following prompt: \"How to impute a value for multiple columns that follow a simialr naming
-structure based on the value in another column\"\n",
-"afreq_columns = [col for col in subset_nri.columns if col.endswith('_AFREQ')]\n",
-"riskr_columns = [col for col in subset_nri.columns if col.endswith('_RISKR')]\n",
-"\n",
-"#Impute zero in '_AFREQ' columns where the corresponding '_RISKR'columns are 'Not Applicable'\n",
-"for riskr_columns, afreq_columns in zip(riskr_columns, afreq_columns):\n",
-" subset_nri.loc[subset_nri[riskr_columns] == 'Not Applicable', afreq_columns] = 0\n",
-"\n",
-"'''\n",
-"##Can check that this works by running the previous python cell and then running this one again, there should be ZERO
-counts of \"Missing\" in the cross tabulation for 'Not Applicable'\n",
-"print(crosstab_df)\n",
-"'''"
-],
-"id": "34862c4f",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"## Task 2 - SVI Data Cleaning\n",
-"\n",
-"__1. Import the SVI data. Ensure that the FIPS code is correctly identified as a string / character variable.
-Otherwise, the leading zeros will be removed.__\n",
-"__1. Subset the SVI data to include only the following columns:__\n",
-"`ST, STATE, ST_ABBR, STCNTY, COUNTY, FIPS, LOCATION, AREA_SQMI, E_TOTPOP, EP_POV150, EP_UNEMP, EP_HBURD, EP_NOHSDP,
-EP_UNINSUR, EP_AGE65, EP_AGE17, EP_DISABL, EP_SNGPNT, EP_LIMENG, EP_MINRTY, EP_MUNIT, EP_MOBILE, EP_CROWD, EP_NOVEH,
-EP_GROUPQ, EP_NOINT, EP_AFAM, EP_HISP, EP_ASIAN, EP_AIAN, EP_NHPI, EP_TWOMORE, EP_OTHERRACE`"
-],
-"id": "9a5421a9"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"svi_data= r\"C:\\Users\\aserilevi\\code\\PRGS-Intro-to-Machine-Learning\\data\\raw\\Social Vulnerability Index (SVI)
-County Level Data\\SVI_2022_US_county.csv\"\n",
-"svi_df=pd.read_csv(svi_data)\n",
-"svi_df['FIPS'] = svi_df['FIPS'].astype(str)\n",
-"\n",
-"#identifying the columns I'm going to filter by\n",
-"svi_columns = columns_to_select = [\n",
-" 'ST', 'STATE', 'ST_ABBR', 'STCNTY', 'COUNTY', 'FIPS', 'LOCATION', 'AREA_SQMI',\n",
-" 'E_TOTPOP', 'EP_POV150', 'EP_UNEMP', 'EP_HBURD', 'EP_NOHSDP', 'EP_UNINSUR', 'EP_AGE65', \n",
-" 'EP_AGE17', 'EP_DISABL', 'EP_SNGPNT', 'EP_LIMENG', 'EP_MINRTY', 'EP_MUNIT', 'EP_MOBILE', \n",
-" 'EP_CROWD', 'EP_NOVEH', 'EP_GROUPQ', 'EP_NOINT', 'EP_AFAM', 'EP_HISP', 'EP_ASIAN', \n",
-" 'EP_AIAN', 'EP_NHPI', 'EP_TWOMORE', 'EP_OTHERRACE'\n",
-"]\n",
-"\n",
-"#filtering the columns in the svi table \n",
-"filtered_svi=svi_df[svi_columns]\n",
-"#print result\n",
-"print(filtered_svi)"
-],
-"id": "6ae7e3a6",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__2. Create a table / dataframe that shows the number of missing values in each column.\n",
-"(Hint: if you wrote a function for Task 1, you can reuse it here.)__"
-],
-"id": "17f2513d"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#using the function made in the previous task\n",
-"svi_missing=count_missing(filtered_svi)\n",
-"#turning it into a dataframe\n",
-"svi_missing_df=pd.DataFrame(svi_missing)\n",
-"#print result\n",
-"print(svi_missing_df)"
-],
-"id": "013e2928",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"## Task 3 - Data Merging\n",
-"__1. Identify any FIPS codes that are present in the NRI data but not in the SVI data and vice versa. Describe any
-discrepancies and possible causes? What to these discrepancies, if any, mean for interpreting results based on the
-merged dataset moving forward?__"
-],
-"id": "56fb7437"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#The NRI dataset has 3 FIPS columns, one for state, one for county, and one for a combination of both, called state
-county (STCO). The SVI data has one column named FIPS and another column named STCNTY (State County) which can be
-interpreted in the same way as the STCOFIPS column from the NRI data and we should keep this in mind moving forward as
-we can use this as a key to merge our datasets"
-],
-"id": "2e130cb3",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__2. Merge the NRI and SVI data on the FIPS code. Use an outer join to keep all counties in the final dataset.__"
-],
-"id": "36066726"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"##merging the subsetted and filtered dataframes on the FIPS and STCOFIPS keys\n",
-"merged_nri_svi=pd.merge(subset_nri, filtered_svi, how='outer', left_on='STCOFIPS', right_on='FIPS')\n",
-"#print result\n",
-"print(merged_nri_svi)"
-],
-"id": "55c532f7",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"__3. Create a table / dataframe that shows the number of missing values in each column of the merged dataset.__"
-],
-"id": "9fc5bf6b"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#using count_missing function to county how many missing values there are in merged dataframe\n",
-"missing_merged=count_missing(merged_nri_svi)\n",
-"missing_merged_df=pd.DataFrame(missing_merged)\n",
-"#print result\n",
-"print(missing_merged_df)"
-],
-"id": "28b81856",
-"execution_count": null,
-"outputs": []
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"## Task 4 - Data Analysis\n",
-"\n",
-"__1. For each numerical variable in the merged dataset, plot a histogram showing the distribution of values.\n",
-"(Hint: write a function to make the histogram for a single variable, then use a loop or apply function to make the
-histograms for all numerical variables.)__"
-],
-"id": "08a5c296"
-},
-{
-"cell_type": "code",
-"metadata": {},
-"source": [
-"#I used chatgpt by asking it how to apply a function that creates a histogram for every numerical variable in a
-dataframe\n",
-"def plot_histogram(data, bins=10, title='Histogram', xlabel='Values', ylabel='Frequency'):\n",
-" plt.figure(figsize=(8, 6))\n",
-" plt.hist(data, bins=bins, edgecolor='black')\n",
-" \n",
-" # Add title and axis labels\n",
-" plt.title(title)\n",
-" plt.xlabel(xlabel)\n",
-" plt.ylabel(ylabel)\n",
-" \n",
-" # Show the plot\n",
-" plt.show()\n",
-"'''\n",
-"#checking to see if it worked\n",
-"hist_test= plot_histogram(merged_nri_svi['EP_MINRTY'])\n",
-"'''\n",
-"#assigning a variable that is only the numerical variables in the merged dataset\n",
-"selecting_numerical_variables= merged_nri_svi.select_dtypes(include=['number'])\n",
-"#applying the plot_Histogram function to all the numerical variables in the merged dataset\n",
-"apply_hist=selecting_numerical_variables.apply(plot_histogram)"
-],
-"id": "d6ff6670",
-"execution_count": null,
-"outputs": []
-}
-],
-"metadata": {
-"kernelspec": {
-"display_name": "Python 3",
-"language": "python",
-"name": "python3"
-}
-},
-"nbformat": 4,
-"nbformat_minor": 5
-}
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="generator" content="quarto-1.5.57">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+  <title>Homework 2</title>
+  <style>
+    code {
+      white-space: pre-wrap;
+    }
+
+    span.smallcaps {
+      font-variant: small-caps;
+    }
+
+    div.columns {
+      display: flex;
+      gap: min(4vw, 1.5em);
+    }
+
+    div.column {
+      flex: auto;
+      overflow-x: auto;
+    }
+
+    div.hanging-indent {
+      margin-left: 1.5em;
+      text-indent: -1.5em;
+    }
+
+    ul.task-list {
+      list-style: none;
+    }
+
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em;
+      /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */
+      vertical-align: middle;
+    }
+
+    /* CSS for syntax highlighting */
+    pre>code.sourceCode {
+      white-space: pre;
+      position: relative;
+    }
+
+    pre>code.sourceCode>span {
+      line-height: 1.25;
+    }
+
+    pre>code.sourceCode>span:empty {
+      height: 1.2em;
+    }
+
+    .sourceCode {
+      overflow: visible;
+    }
+
+    code.sourceCode>span {
+      color: inherit;
+      text-decoration: inherit;
+    }
+
+    div.sourceCode {
+      margin: 1em 0;
+    }
+
+    pre.sourceCode {
+      margin: 0;
+    }
+
+    @media screen {
+      div.sourceCode {
+        overflow: auto;
+      }
+    }
+
+    @media print {
+      pre>code.sourceCode {
+        white-space: pre-wrap;
+      }
+
+      pre>code.sourceCode>span {
+        display: inline-block;
+        text-indent: -5em;
+        padding-left: 5em;
+      }
+    }
+
+    pre.numberSource code {
+      counter-reset: source-line 0;
+    }
+
+    pre.numberSource code>span {
+      position: relative;
+      left: -4em;
+      counter-increment: source-line;
+    }
+
+    pre.numberSource code>span>a:first-child::before {
+      content: counter(source-line);
+      position: relative;
+      left: -1em;
+      text-align: right;
+      vertical-align: baseline;
+      border: none;
+      display: inline-block;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      padding: 0 4px;
+      width: 4em;
+    }
+
+    pre.numberSource {
+      margin-left: 3em;
+      padding-left: 4px;
+    }
+
+    div.sourceCode {}
+
+    @media screen {
+      pre>code.sourceCode>span>a:first-child::before {
+        text-decoration: underline;
+      }
+    }
+  </style>
+
+
+  <script src="HW_02_files/libs/clipboard/clipboard.min.js"></script>
+  <script src="HW_02_files/libs/quarto-html/quarto.js"></script>
+  <script src="HW_02_files/libs/quarto-html/popper.min.js"></script>
+  <script src="HW_02_files/libs/quarto-html/tippy.umd.min.js"></script>
+  <script src="HW_02_files/libs/quarto-html/anchor.min.js"></script>
+  <link href="HW_02_files/libs/quarto-html/tippy.css" rel="stylesheet">
+  <link href="HW_02_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet"
+    id="quarto-text-highlighting-styles">
+  <script src="HW_02_files/libs/bootstrap/bootstrap.min.js"></script>
+  <link href="HW_02_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+  <link href="HW_02_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+  <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+    <main class="content" id="quarto-document-content">
+
+      <header id="title-block-header" class="quarto-title-block default">
+        <div class="quarto-title">
+          <h1 class="title">Homework 2</h1>
+        </div>
+
+
+
+        <div class="quarto-title-meta">
+
+
+
+
+        </div>
+
+
+
+      </header>
+
+
+      <p><strong>Due Date:</strong> 2022-10-16 at 8:30 AM PT</p>
+      <hr>
+      <p><strong>Name:</strong> Adam Seri-Levi</p>
+      <p>For this assignment, you will practice downloadings, cleaning, and analyzing data from the <a
+          href="https://hazards.fema.gov/nri/">National Risk Index (NRI)</a> and the <a
+          href="https://www.atsdr.cdc.gov/placeandhealth/svi/index.html">CDC Social Vulnerability Index (SVI)</a>.</p>
+      <section id="preparation" class="level2">
+        <h2 class="anchored" data-anchor-id="preparation">Preparation</h2>
+        <ol type="1">
+          <li>Create a ‘data’ folder in the root directory of your repository.</li>
+          <li>Inside the ‘data’ folder, create a ‘raw’ folder.</li>
+          <li>Add and commit a ‘.gitignore’ file to the root directory of this repository that excludes all contents of
+            the ‘data’ folder.</li>
+          <li>Download the county-level NRI and SVI data for the entire United States. Place the data in the ‘data/raw’
+            folder.</li>
+          <li>In the repository README, provide a brief (1-2 sentence) description of each file in the ‘data’ folder and
+            a link to the original source of the data.</li>
+        </ol>
+      </section>
+      <section id="task-1---nri-data-cleaning" class="level2">
+        <h2 class="anchored" data-anchor-id="task-1---nri-data-cleaning">Task 1 - NRI Data Cleaning</h2>
+        <p><strong>1. Import the NRI data. Ensure that the <a
+              href="https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code">FIPS code</a>
+            variable (‘STCOFIPS’) is correctly identified as a string / character variable. Otherwise, the leading zeros
+            will be removed.</strong></p>
+        <div id="b279302b" class="cell" data-execution_count="1">
+          <div class="sourceCode cell-code" id="cb1">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#importing packages</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>nri_data<span class="op">=</span><span class="vs">r"C:\Users\aserilevi\code\PRGS-Intro-to-Machine-Learning\data\raw\National Risk Index (NRI) County Level Data\NRI_Table_Counties.csv"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>nri_df<span class="op">=</span>pd.read_csv(nri_data)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>nri_df[<span class="st">'STCOFIPS'</span>] <span class="op">=</span> nri_df[<span class="st">'STCOFIPS'</span>].astype(<span class="bu">str</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>stcofips_column <span class="op">=</span> <span class="st">'STCOFIPS'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+        </div>
+        <p><strong>2. Subset the NRI data to include only the 5-digit state/county FIPS code and all colums ending with
+            ‘_AFREQ’ and ‘_RISKR’. Each of these columns represents a different hazard type.</strong></p>
+        <div id="be135712" class="cell" data-execution_count="2">
+          <div class="sourceCode cell-code" id="cb2">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Assigning the stcofips column to a variable</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>stcofips_column <span class="op">=</span> <span class="st">'STCOFIPS'</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter columns that end with '_AFREQ' or '_RISKR'</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>filtered_nri <span class="op">=</span> nri_df.<span class="bu">filter</span>(regex<span class="op">=</span><span class="st">'(_AFREQ|_RISKR)$'</span>).columns</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Include the STCOFIPS column</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>filtered_nri <span class="op">=</span> [stcofips_column] <span class="op">+</span> <span class="bu">list</span>(filtered_nri)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Subset the DataFrame with only columns of interest</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>subset_nri <span class="op">=</span> nri_df[filtered_nri]</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Restrict to rows where STCOFIPS has exactly 5 digits</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>subset_nri <span class="op">=</span> subset_nri[subset_nri[stcofips_column].astype(<span class="bu">str</span>).<span class="bu">str</span>.match(<span class="vs">r'^\d</span><span class="sc">{5}</span><span class="vs">$'</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+        </div>
+        <p><strong>3. Create a table / dataframe that, for each hazard type, shows the number of missing values in the
+            ‘_AFREQ’ and ‘_RISKR’ columns.</strong></p>
+        <div id="7d8546f7" class="cell" data-execution_count="3">
+          <div class="sourceCode cell-code" id="cb3">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating a function that counts missing values for each column in a dataFrame</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_missing(df):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df.isna().<span class="bu">sum</span>()</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># using the function to count missing in our subsetted dataframe</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>count_missing_subset_nri<span class="op">=</span>count_missing(subset_nri)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># dropping the STCOFIPS column</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>count_missing_subset_nri <span class="op">=</span> count_missing_subset_nri.drop(<span class="st">'STCOFIPS'</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># converting to dataframe</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>count_missing_subset_nri<span class="op">=</span> pd.DataFrame(count_missing_subset_nri)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count_missing_subset_nri)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-stdout">
+            <pre><code>               0
+AVLN_AFREQ  2789
+AVLN_RISKR     0
+CFLD_AFREQ  2386
+CFLD_RISKR     0
+CWAV_AFREQ     0
+CWAV_RISKR     0
+DRGT_AFREQ     7
+DRGT_RISKR     0
+ERQK_AFREQ     0
+ERQK_RISKR     0
+HAIL_AFREQ     7
+HAIL_RISKR     0
+HWAV_AFREQ     0
+HWAV_RISKR     0
+HRCN_AFREQ   765
+HRCN_RISKR     0
+ISTM_AFREQ   160
+ISTM_RISKR     0
+LNDS_AFREQ    10
+LNDS_RISKR     0
+LTNG_AFREQ    93
+LTNG_RISKR     0
+RFLD_AFREQ     0
+RFLD_RISKR     0
+SWND_AFREQ     7
+SWND_RISKR     0
+TRND_AFREQ     7
+TRND_RISKR     0
+TSUN_AFREQ  2829
+TSUN_RISKR     0
+VLCN_AFREQ  2843
+VLCN_RISKR     0
+WFIR_AFREQ    88
+WFIR_RISKR     0
+WNTW_AFREQ     0
+WNTW_RISKR     0</code></pre>
+          </div>
+        </div>
+        <p><strong>4. Show the cross-tabulation of the ‘AVLN_AFREQ’ and ‘AVLN_RISKR’ columns (including missing values).
+            What do you observe?</strong></p>
+        <div id="348f71c6" class="cell" data-execution_count="4">
+          <div class="sourceCode cell-code" id="cb5">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Creating a new column in the subset_nri dataframe that indicates where the value in AVLN_AFREQ is missing or observed</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>subset_nri[<span class="st">'AVLN_AFREQ_MISSING'</span>] <span class="op">=</span> np.where(subset_nri[<span class="st">'AVLN_AFREQ'</span>].isna(),<span class="st">'Missing'</span>, <span class="st">'Observed'</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">'''</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">##Checking that it worked</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">print(subset_nri[subset_nri['AVLN_AFREQ_MISSING'] == 'Observed'][['AVLN_AFREQ_MISSING', 'AVLN_AFREQ']])</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">'''</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#cross tabulating, I noticed that there are no missing valuse except for wehn "AVLN_RISK" equals 'Not Applicable'. When it equals 'Not Applicable', "AVLN_RISK" is always missing, which makes sense since there is no risk associated when there isn't an applicable hazard</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>crosstab_df<span class="op">=</span>pd.crosstab(</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    subset_nri[<span class="st">'AVLN_AFREQ_MISSING'</span>],</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    subset_nri[<span class="st">'AVLN_RISKR'</span>],</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    dropna<span class="op">=</span><span class="va">False</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(crosstab_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-stdout">
+            <pre><code>AVLN_RISKR          Not Applicable  Relatively High  Relatively Low  \
+AVLN_AFREQ_MISSING                                                    
+Missing                       2789                0               0   
+Observed                         0                9              35   
+
+AVLN_RISKR          Relatively Moderate  Very High  Very Low  
+AVLN_AFREQ_MISSING                                            
+Missing                               0          0         0  
+Observed                             14          5        62  </code></pre>
+          </div>
+        </div>
+        <p><strong>5. Assuming that a risk that is “not applicable” to a county has an annualized frequency of 0, impute
+            the relevant missing values in the ‘_AFREQ’ columns with 0.</strong></p>
+        <div id="a4e3a566" class="cell" data-execution_count="5">
+          <div class="sourceCode cell-code" id="cb7">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Identifying which columns ends with _AFREQ and _RISKR and assigning each to a variable</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#I used chatgpt using the following prompt: "How to impute a value for multiple columns that follow a simialr naming structure based on the value in another column"</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>afreq_columns <span class="op">=</span> [col <span class="cf">for</span> col <span class="kw">in</span> subset_nri.columns <span class="cf">if</span> col.endswith(<span class="st">'_AFREQ'</span>)]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>riskr_columns <span class="op">=</span> [col <span class="cf">for</span> col <span class="kw">in</span> subset_nri.columns <span class="cf">if</span> col.endswith(<span class="st">'_RISKR'</span>)]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#Impute zero in '_AFREQ' columns where the corresponding '_RISKR'columns are 'Not Applicable'</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> riskr_columns, afreq_columns <span class="kw">in</span> <span class="bu">zip</span>(riskr_columns, afreq_columns):</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    subset_nri.loc[subset_nri[riskr_columns] <span class="op">==</span> <span class="st">'Not Applicable'</span>, afreq_columns] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">'''</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">##Can check that this works by running the previous python cell and then running this one again, there should be ZERO counts of "Missing" in the cross tabulation for 'Not Applicable'</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">print(crosstab_df)</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">'''</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-display" data-execution_count="5">
+            <pre><code>'\n##Can check that this works by running the previous python cell and then running this one again, there should be ZERO counts of "Missing" in the cross tabulation for \'Not Applicable\'\nprint(crosstab_df)\n'</code></pre>
+          </div>
+        </div>
+      </section>
+      <section id="task-2---svi-data-cleaning" class="level2">
+        <h2 class="anchored" data-anchor-id="task-2---svi-data-cleaning">Task 2 - SVI Data Cleaning</h2>
+        <p><strong>1. Import the SVI data. Ensure that the FIPS code is correctly identified as a string / character
+            variable. Otherwise, the leading zeros will be removed.</strong> <strong>1. Subset the SVI data to include
+            only the following columns:</strong>
+          <code>ST, STATE, ST_ABBR, STCNTY, COUNTY, FIPS, LOCATION, AREA_SQMI, E_TOTPOP, EP_POV150, EP_UNEMP, EP_HBURD, EP_NOHSDP, EP_UNINSUR, EP_AGE65, EP_AGE17, EP_DISABL, EP_SNGPNT, EP_LIMENG, EP_MINRTY, EP_MUNIT, EP_MOBILE, EP_CROWD, EP_NOVEH, EP_GROUPQ, EP_NOINT, EP_AFAM, EP_HISP, EP_ASIAN, EP_AIAN, EP_NHPI, EP_TWOMORE, EP_OTHERRACE</code>
+        </p>
+        <div id="603ce30e" class="cell" data-execution_count="6">
+          <div class="sourceCode cell-code" id="cb9">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>svi_data<span class="op">=</span> <span class="vs">r"C:\Users\aserilevi\code\PRGS-Intro-to-Machine-Learning\data\raw\Social Vulnerability Index (SVI) County Level Data\SVI_2022_US_county.csv"</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>svi_df<span class="op">=</span>pd.read_csv(svi_data)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>svi_df[<span class="st">'FIPS'</span>] <span class="op">=</span> svi_df[<span class="st">'FIPS'</span>].astype(<span class="bu">str</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#identifying the columns I'm going to filter by</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>svi_columns <span class="op">=</span> columns_to_select <span class="op">=</span> [</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ST'</span>, <span class="st">'STATE'</span>, <span class="st">'ST_ABBR'</span>, <span class="st">'STCNTY'</span>, <span class="st">'COUNTY'</span>, <span class="st">'FIPS'</span>, <span class="st">'LOCATION'</span>, <span class="st">'AREA_SQMI'</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'E_TOTPOP'</span>, <span class="st">'EP_POV150'</span>, <span class="st">'EP_UNEMP'</span>, <span class="st">'EP_HBURD'</span>, <span class="st">'EP_NOHSDP'</span>, <span class="st">'EP_UNINSUR'</span>, <span class="st">'EP_AGE65'</span>, </span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'EP_AGE17'</span>, <span class="st">'EP_DISABL'</span>, <span class="st">'EP_SNGPNT'</span>, <span class="st">'EP_LIMENG'</span>, <span class="st">'EP_MINRTY'</span>, <span class="st">'EP_MUNIT'</span>, <span class="st">'EP_MOBILE'</span>, </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'EP_CROWD'</span>, <span class="st">'EP_NOVEH'</span>, <span class="st">'EP_GROUPQ'</span>, <span class="st">'EP_NOINT'</span>, <span class="st">'EP_AFAM'</span>, <span class="st">'EP_HISP'</span>, <span class="st">'EP_ASIAN'</span>, </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'EP_AIAN'</span>, <span class="st">'EP_NHPI'</span>, <span class="st">'EP_TWOMORE'</span>, <span class="st">'EP_OTHERRACE'</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co">#filtering the columns in the svi table </span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>filtered_svi<span class="op">=</span>svi_df[svi_columns]</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co">#print result</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(filtered_svi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-stdout">
+            <pre><code>      ST    STATE ST_ABBR  STCNTY             COUNTY   FIPS  \
+0      1  Alabama      AL    1001     Autauga County   1001   
+1      1  Alabama      AL    1003     Baldwin County   1003   
+2      1  Alabama      AL    1005     Barbour County   1005   
+3      1  Alabama      AL    1007        Bibb County   1007   
+4      1  Alabama      AL    1009      Blount County   1009   
+...   ..      ...     ...     ...                ...    ...   
+3139  56  Wyoming      WY   56037  Sweetwater County  56037   
+3140  56  Wyoming      WY   56039       Teton County  56039   
+3141  56  Wyoming      WY   56041       Uinta County  56041   
+3142  56  Wyoming      WY   56043    Washakie County  56043   
+3143  56  Wyoming      WY   56045      Weston County  56045   
+
+                        LOCATION     AREA_SQMI  E_TOTPOP  EP_POV150  ...  \
+0        Autauga County, Alabama    594.454786     58761       20.2  ...   
+1        Baldwin County, Alabama   1589.861817    233420       18.3  ...   
+2        Barbour County, Alabama    885.007619     24877       37.7  ...   
+3           Bibb County, Alabama    622.469286     22251       29.0  ...   
+4         Blount County, Alabama    644.890376     59077       22.9  ...   
+...                          ...           ...       ...        ...  ...   
+3139  Sweetwater County, Wyoming  10426.975770     42079       18.0  ...   
+3140       Teton County, Wyoming   3996.846933     23346       10.5  ...   
+3141       Uinta County, Wyoming   2081.719807     20546       15.2  ...   
+3142    Washakie County, Wyoming   2238.678265      7725       19.1  ...   
+3143      Weston County, Wyoming   2398.003893      6870       19.8  ...   
+
+      EP_NOVEH  EP_GROUPQ  EP_NOINT  EP_AFAM  EP_HISP  EP_ASIAN  EP_AIAN  \
+0          4.0        0.9      10.9     19.6      3.2       1.1      0.1   
+1          2.3        1.5      10.9      8.3      4.8       0.9      0.2   
+2         11.7       12.0      31.8     46.9      4.8       0.5      0.3   
+3          7.5        6.4      20.2     20.7      2.9       0.3      0.1   
+4          4.8        1.0      16.9      1.2      9.7       0.2      0.1   
+...        ...        ...       ...      ...      ...       ...      ...   
+3139       2.0        1.2      10.6      1.2     16.2       0.7      0.9   
+3140       1.9        3.9      10.4      0.6     15.2       1.3      0.1   
+3141       3.7        1.1       8.5      0.2      9.9       0.2      0.1   
+3142       4.7        2.0      14.1      0.0     14.3       0.4      0.3   
+3143       3.4        5.2      19.6      0.1      3.5       0.2      1.5   
+
+      EP_NHPI  EP_TWOMORE  EP_OTHERRACE  
+0         0.0         3.3           0.2  
+1         0.0         3.1           0.4  
+2         0.0         1.8           1.2  
+3         0.0         1.7           0.1  
+4         0.2         2.8           0.1  
+...       ...         ...           ...  
+3139      0.1         2.2           0.9  
+3140      0.1         2.3           0.7  
+3141      0.0         2.9           0.0  
+3142      0.0         3.2           0.3  
+3143      0.7         8.3           0.1  
+
+[3144 rows x 33 columns]</code></pre>
+          </div>
+        </div>
+        <p><strong>2. Create a table / dataframe that shows the number of missing values in each column. (Hint: if you
+            wrote a function for Task 1, you can reuse it here.)</strong></p>
+        <div id="89e6a897" class="cell" data-execution_count="7">
+          <div class="sourceCode cell-code" id="cb11">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#using the function made in the previous task</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>svi_missing<span class="op">=</span>count_missing(filtered_svi)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#turning it into a dataframe</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>svi_missing_df<span class="op">=</span>pd.DataFrame(svi_missing)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#print result</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(svi_missing_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-stdout">
+            <pre><code>              0
+ST            0
+STATE         0
+ST_ABBR       0
+STCNTY        0
+COUNTY        0
+FIPS          0
+LOCATION      0
+AREA_SQMI     0
+E_TOTPOP      0
+EP_POV150     0
+EP_UNEMP      0
+EP_HBURD      0
+EP_NOHSDP     0
+EP_UNINSUR    0
+EP_AGE65      0
+EP_AGE17      0
+EP_DISABL     0
+EP_SNGPNT     0
+EP_LIMENG     0
+EP_MINRTY     0
+EP_MUNIT      0
+EP_MOBILE     0
+EP_CROWD      0
+EP_NOVEH      0
+EP_GROUPQ     0
+EP_NOINT      0
+EP_AFAM       0
+EP_HISP       0
+EP_ASIAN      0
+EP_AIAN       0
+EP_NHPI       0
+EP_TWOMORE    0
+EP_OTHERRACE  0</code></pre>
+          </div>
+        </div>
+      </section>
+      <section id="task-3---data-merging" class="level2">
+        <h2 class="anchored" data-anchor-id="task-3---data-merging">Task 3 - Data Merging</h2>
+        <p><strong>1. Identify any FIPS codes that are present in the NRI data but not in the SVI data and vice versa.
+            Describe any discrepancies and possible causes? What to these discrepancies, if any, mean for interpreting
+            results based on the merged dataset moving forward?</strong></p>
+        <div id="b8535269" class="cell" data-execution_count="8">
+          <div class="sourceCode cell-code" id="cb13">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#The NRI dataset has 3 FIPS columns, one for state, one for county, and one for a combination of both, called state county (STCO). The SVI data has one column named FIPS and another column named STCNTY (State County) which can be interpreted in the same way as the STCOFIPS column from the NRI data and we should keep this in mind moving forward as we can use this as a key to merge our datasets</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+        </div>
+        <p><strong>2. Merge the NRI and SVI data on the FIPS code. Use an outer join to keep all counties in the final
+            dataset.</strong></p>
+        <div id="c084becb" class="cell" data-execution_count="9">
+          <div class="sourceCode cell-code" id="cb14">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">##merging the subsetted and filtered dataframes on the FIPS and STCOFIPS keys</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>merged_nri_svi<span class="op">=</span>pd.merge(subset_nri, filtered_svi, how<span class="op">=</span><span class="st">'outer'</span>, left_on<span class="op">=</span><span class="st">'STCOFIPS'</span>, right_on<span class="op">=</span><span class="st">'FIPS'</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">#print result</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(merged_nri_svi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-stdout">
+            <pre><code>     STCOFIPS  AVLN_AFREQ      AVLN_RISKR  CFLD_AFREQ           CFLD_RISKR  \
+0       10001         0.0  Not Applicable    3.687000  Relatively Moderate   
+1       10003         0.0  Not Applicable    3.687000  Relatively Moderate   
+2       10005         0.0  Not Applicable    3.654749      Relatively High   
+3         NaN         NaN             NaN         NaN                  NaN   
+4         NaN         NaN             NaN         NaN                  NaN   
+...       ...         ...             ...         ...                  ...   
+3227      NaN         NaN             NaN         NaN                  NaN   
+3228      NaN         NaN             NaN         NaN                  NaN   
+3229      NaN         NaN             NaN         NaN                  NaN   
+3230      NaN         NaN             NaN         NaN                  NaN   
+3231      NaN         NaN             NaN         NaN                  NaN   
+
+      CWAV_AFREQ CWAV_RISKR  DRGT_AFREQ      DRGT_RISKR  ERQK_AFREQ  ...  \
+0            0.0  No Rating    3.904782  Relatively Low    0.000330  ...   
+1            0.0  No Rating    5.667769  Relatively Low    0.000399  ...   
+2            0.0  No Rating    2.620629  Relatively Low    0.000247  ...   
+3            NaN        NaN         NaN             NaN         NaN  ...   
+4            NaN        NaN         NaN             NaN         NaN  ...   
+...          ...        ...         ...             ...         ...  ...   
+3227         NaN        NaN         NaN             NaN         NaN  ...   
+3228         NaN        NaN         NaN             NaN         NaN  ...   
+3229         NaN        NaN         NaN             NaN         NaN  ...   
+3230         NaN        NaN         NaN             NaN         NaN  ...   
+3231         NaN        NaN         NaN             NaN         NaN  ...   
+
+     EP_NOVEH  EP_GROUPQ EP_NOINT  EP_AFAM EP_HISP  EP_ASIAN EP_AIAN  EP_NHPI  \
+0         6.8        2.5     10.6     25.5     7.8       2.3     0.3      0.0   
+1         7.0        2.7      8.2     24.7    10.8       5.8     0.1      0.0   
+2         3.6        1.1     11.5     10.7     9.5       1.3     0.3      0.0   
+3         4.0        0.9     10.9     19.6     3.2       1.1     0.1      0.0   
+4         2.3        1.5     10.9      8.3     4.8       0.9     0.2      0.0   
+...       ...        ...      ...      ...     ...       ...     ...      ...   
+3227      5.0        1.6     10.7      1.4    11.8       1.4     0.1      0.1   
+3228      6.1        2.0      9.0      4.4    10.9       2.5     0.0      0.0   
+3229     11.1        4.3      9.5     12.4    18.8       4.2     0.1      0.0   
+3230      7.3        4.7      9.9      5.1    11.4       3.8     0.4      0.0   
+3231      5.8        1.3      6.5      9.6    20.1       5.2     0.1      0.0   
+
+     EP_TWOMORE  EP_OTHERRACE  
+0           5.1           0.4  
+1           3.5           0.4  
+2           3.3           0.4  
+3           3.3           0.2  
+4           3.1           0.4  
+...         ...           ...  
+3227        3.6           0.2  
+3228        3.8           0.4  
+3229        2.6           0.6  
+3230        4.2           0.5  
+3231        3.6           0.8  
+
+[3232 rows x 71 columns]</code></pre>
+          </div>
+        </div>
+        <p><strong>3. Create a table / dataframe that shows the number of missing values in each column of the merged
+            dataset.</strong></p>
+        <div id="82607e09" class="cell" data-execution_count="10">
+          <div class="sourceCode cell-code" id="cb16">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#using count_missing function to county how many missing values there are in merged dataframe</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>missing_merged<span class="op">=</span>count_missing(merged_nri_svi)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>missing_merged_df<span class="op">=</span>pd.DataFrame(missing_merged)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">#print result</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(missing_merged_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-stdout">
+            <pre><code>                0
+STCOFIPS      318
+AVLN_AFREQ    318
+AVLN_RISKR    318
+CFLD_AFREQ    318
+CFLD_RISKR    318
+...           ...
+EP_ASIAN       88
+EP_AIAN        88
+EP_NHPI        88
+EP_TWOMORE     88
+EP_OTHERRACE   88
+
+[71 rows x 1 columns]</code></pre>
+          </div>
+        </div>
+      </section>
+      <section id="task-4---data-analysis" class="level2">
+        <h2 class="anchored" data-anchor-id="task-4---data-analysis">Task 4 - Data Analysis</h2>
+        <p><strong>1. For each numerical variable in the merged dataset, plot a histogram showing the distribution of
+            values. (Hint: write a function to make the histogram for a single variable, then use a loop or apply
+            function to make the histograms for all numerical variables.)</strong></p>
+        <div id="dc66b36a" class="cell" data-execution_count="11">
+          <div class="sourceCode cell-code" id="cb18">
+            <pre
+              class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#I used chatgpt by asking it how to apply a function that creates a histogram for every numerical variable in a dataframe</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_histogram(data, bins<span class="op">=</span><span class="dv">10</span>, title<span class="op">=</span><span class="st">'Histogram'</span>, xlabel<span class="op">=</span><span class="st">'Values'</span>, ylabel<span class="op">=</span><span class="st">'Frequency'</span>):</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    plt.hist(data, bins<span class="op">=</span>bins, edgecolor<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Add title and axis labels</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    plt.title(title)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(xlabel)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(ylabel)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Show the plot</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co">'''</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co">#checking to see if it worked</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="co">hist_test= plot_histogram(merged_nri_svi['EP_MINRTY'])</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="co">'''</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co">#assigning a variable that is only the numerical variables in the merged dataset</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>selecting_numerical_variables<span class="op">=</span> merged_nri_svi.select_dtypes(include<span class="op">=</span>[<span class="st">'number'</span>])</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="co">#applying the plot_Histogram function to all the numerical variables in the merged dataset</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>apply_hist<span class="op">=</span>selecting_numerical_variables.<span class="bu">apply</span>(plot_histogram)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-1.png" width="683" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-2.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-3.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-4.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-5.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-6.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-7.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-8.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-9.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-10.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-11.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-12.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-13.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-14.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-15.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-16.png" width="686" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-17.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-18.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-19.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-20.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-21.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-22.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-23.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-24.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-25.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-26.png" width="684" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-27.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-28.png" width="678" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-29.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-30.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-31.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-32.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-33.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-34.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-35.png" width="667" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-36.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-37.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-38.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-39.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-40.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-41.png" width="681" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-42.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-43.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-44.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-45.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+          <div class="cell-output cell-output-display">
+            <div>
+              <figure class="figure">
+                <p><img src="HW_02_files/figure-html/cell-12-output-46.png" width="676" height="523" class="figure-img">
+                </p>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    <!-- /main column -->
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const toggleBodyColorMode = (bsSheetEl) => {
+          const mode = bsSheetEl.getAttribute("data-mode");
+          const bodyEl = window.document.querySelector("body");
+          if (mode === "dark") {
+            bodyEl.classList.add("quarto-dark");
+            bodyEl.classList.remove("quarto-light");
+          } else {
+            bodyEl.classList.add("quarto-light");
+            bodyEl.classList.remove("quarto-dark");
+          }
+        }
+        const toggleBodyColorPrimary = () => {
+          const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+          if (bsSheetEl) {
+            toggleBodyColorMode(bsSheetEl);
+          }
+        }
+        toggleBodyColorPrimary();
+        const icon = "";
+        const anchorJS = new window.AnchorJS();
+        anchorJS.options = {
+          placement: 'right',
+          icon: icon
+        };
+        anchorJS.add('.anchored');
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function (e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button,
+              {
+                trigger: "manual",
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]
+              });
+            tooltip.show();
+          }
+          setTimeout(function () {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function (trigger) {
+          const codeEl = trigger.previousElementSibling.cloneNode(true);
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          // For code content inside modals, clipBoardJS needs to be initialized with a container option
+          // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+        var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+        var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+        var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+        }
+        // Inspect non-navigation links and adorn them if external
+        var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+        for (var i = 0; i < links.length; i++) {
+          const link = links[i];
+          if (!isInternal(link.href)) {
+            // undo the damage that might have been done by quarto-nav.js in the case of
+            // links that we want to consider external
+            if (link.dataset.originalHref !== undefined) {
+              link.href = link.dataset.originalHref;
+            }
+          }
+        }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function (el) {
+              return el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'quarto',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+          window.tippy(el, config);
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i = 0; i < noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function () {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch { }
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const xrefs = window.document.querySelectorAll('a.quarto-xref');
+        const processXRef = (id, note) => {
+          // Strip column container classes
+          const stripColumnClz = (el) => {
+            el.classList.remove("page-full", "page-columns");
+            if (el.children) {
+              for (const child of el.children) {
+                stripColumnClz(child);
+              }
+            }
+          }
+          stripColumnClz(note)
+          if (id === null || id.startsWith('sec-')) {
+            // Special case sections, only their first couple elements
+            const container = document.createElement("div");
+            if (note.children && note.children.length > 2) {
+              container.appendChild(note.children[0].cloneNode(true));
+              for (let i = 1; i < note.children.length; i++) {
+                const child = note.children[i];
+                if (child.tagName === "P" && child.innerText === "") {
+                  continue;
+                } else {
+                  container.appendChild(child.cloneNode(true));
+                  break;
+                }
+              }
+              if (window.Quarto?.typesetMath) {
+                window.Quarto.typesetMath(container);
+              }
+              return container.innerHTML
+            } else {
+              if (window.Quarto?.typesetMath) {
+                window.Quarto.typesetMath(note);
+              }
+              return note.innerHTML;
+            }
+          } else {
+            // Remove any anchor links if they are present
+            const anchorLink = note.querySelector('a.anchorjs-link');
+            if (anchorLink) {
+              anchorLink.remove();
+            }
+            if (window.Quarto?.typesetMath) {
+              window.Quarto.typesetMath(note);
+            }
+            // TODO in 1.5, we should make sure this works without a callout special case
+            if (note.classList.contains("callout")) {
+              return note.outerHTML;
+            } else {
+              return note.innerHTML;
+            }
+          }
+        }
+        for (var i = 0; i < xrefs.length; i++) {
+          const xref = xrefs[i];
+          tippyHover(xref, undefined, function (instance) {
+            instance.disable();
+            let url = xref.getAttribute('href');
+            let hash = undefined;
+            if (url.startsWith('#')) {
+              hash = url;
+            } else {
+              try { hash = new URL(url).hash; } catch { }
+            }
+            if (hash) {
+              const id = hash.replace(/^#\/?/, "");
+              const note = window.document.getElementById(id);
+              if (note !== null) {
+                try {
+                  const html = processXRef(id, note.cloneNode(true));
+                  instance.setContent(html);
+                } finally {
+                  instance.enable();
+                  instance.show();
+                }
+              } else {
+                // See if we can fetch this
+                fetch(url.split('#')[0])
+                  .then(res => res.text())
+                  .then(html => {
+                    const parser = new DOMParser();
+                    const htmlDoc = parser.parseFromString(html, "text/html");
+                    const note = htmlDoc.getElementById(id);
+                    if (note !== null) {
+                      const html = processXRef(id, note);
+                      instance.setContent(html);
+                    }
+                  }).finally(() => {
+                    instance.enable();
+                    instance.show();
+                  });
+              }
+            } else {
+              // See if we can fetch a full url (with no hash to target)
+              // This is a special case and we should probably do some content thinning / targeting
+              fetch(url)
+                .then(res => res.text())
+                .then(html => {
+                  const parser = new DOMParser();
+                  const htmlDoc = parser.parseFromString(html, "text/html");
+                  const note = htmlDoc.querySelector('main.content');
+                  if (note !== null) {
+                    // This should only happen for chapter cross references
+                    // (since there is no id in the URL)
+                    // remove the first header
+                    if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                      note.children[0].remove();
+                    }
+                    const html = processXRef(null, note);
+                    instance.setContent(html);
+                  }
+                }).finally(() => {
+                  instance.enable();
+                  instance.show();
+                });
+            }
+          }, function (instance) {
+          });
+        }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = (cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' + annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+        // Handle positioning of the toggle
+        window.addEventListener(
+          "resize",
+          throttle(() => {
+            elRect = undefined;
+            if (selectedAnnoteEl) {
+              selectCodeLines(selectedAnnoteEl);
+            }
+          }, 10)
+        );
+        function throttle(fn, ms) {
+          let throttle = false;
+          let timer;
+          return (...args) => {
+            if (!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+            } else { // all the others get throttled
+              if (timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+            }
+          };
+        }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i = 0; i < bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function () {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function (cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+    </script>
+  </div> <!-- /content -->
+
+
+
+
+</body>
+
+</html>
